@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AERION - Multimodal AI TB Screening</title>
+  <style>
+    :root {
+      --bg-color: #0d1619;
+      --card-bg: #162226;
+      --card-inner: #1a2b30;
+      --accent-blue: #0088ff;
+      --text-main: #ffffff;
+      --text-sub: #9ca3af;
+      --border-color: #24353b;
+      --risk-very-low: #22c55e;
+      --risk-low-med: #eab308;
+      --risk-high: #f97316;
+      --risk-very-high: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #05080a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--text-main);
+    }
+
+    /* Container HP (Rasio 9:16) */
+    .phone-container {
+      width: 100%;
+      max-width: 414px;
+      height: 100vh;
+      max-height: 896px;
+      background-color: var(--bg-color);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Navigasi Atas */
+    .top-bar {
+      height: 50px;
+      background-color: var(--bg-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .top-bar .title {
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      letter-spacing: 2px;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .battery-icon {
+      width: 25px;
+      height: 12px;
+      border: 1px solid #455a64;
+      border-radius: 2px;
+      padding: 1px;
+      display: flex;
+    }
+
+    .battery-level {
+      width: 80%;
+      height: 100%;
+      background-color: #22c55e;
+    }
+
+    /* Area Konten dengan Pergeseran Halaman */
+    .page-wrapper {
+      flex: 1;
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      min-height: 100%;
+      padding: 16px;
+      display: none;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      padding-bottom: 80px;
+    }
+
+    .page.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      height: 60px;
+      background-color: var(--bg-color);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      z-index: 10;
+    }
+
+    .nav-item {
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+      margin-bottom: 2px;
+    }
+
+    .nav-item.active {
+      color: var(--accent-blue);
+    }
+
+    /* Overlay Loading Screen Pertama */
+    #start-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: var(--bg-color);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .pulse-title {
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      font-size: 48px;
+      letter-spacing: 4px;
+      color: #ffffff;
+      animation: pulseGlowSlow 3.5s infinite ease-in-out;
+    }
+
+    .tap-text {
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-sub);
+      letter-spacing: 1px;
+      animation: blinkSlow 2.5s infinite;
+    }
+
+    @keyframes pulseGlowSlow {
+      0% { transform: scale(1); text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+      50% { transform: scale(1.06); text-shadow: 0 0 25px rgba(255, 255, 255, 0.9); }
+      100% { transform: scale(1); text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+    }
+
+    @keyframes blinkSlow {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+
+    /* Sidebar Offcanvas */
+    .sidebar {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 80%;
+      height: 100%;
+      background-color: #0b1215;
+      z-index: 90;
+      transition: left 0.3s ease;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .sidebar.open { left: 0; }
+
+    .sidebar-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 89;
+      display: none;
+    }
+
+    .sidebar-overlay.open { display: block; }
+
+    .search-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      background: none;
+      border: none;
+      color: #fff;
+      margin-left: 8px;
+      outline: none;
+      width: 100%;
+    }
+
+    .menu-list { list-style: none; }
+
+    .menu-item {
+      padding: 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      font-size: 15px;
+    }
+
+    .menu-item:hover { background-color: var(--card-bg); }
+
+    /* Kartu & Elemen Utama */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background-color: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 136, 255, 0.3);
+    }
+
+    .btn-primary:active { transform: scale(0.98); }
+
+    .device-graphic {
+      width: 100%;
+      height: 220px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .device-svg { filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); }
+
+    /* Form Input Klinis */
+    .form-group {
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-inner);
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .counter-btn {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-blue);
+      border: none;
+      color: white;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toggle-switch {
+      display: flex;
+      background: #0d1619;
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .toggle-opt {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-sub);
+    }
+
+    .toggle-opt.active {
+      background: var(--accent-blue);
+      color: #fff;
+      font-weight: bold;
+    }
+
+    /* Gauge / Speedometer Tanpa Panah */
+    .gauge-container {
+      position: relative;
+      width: 200px;
+      height: 110px;
+      margin: 10px auto 0 auto;
+    }
+
+    .risk-score-val {
+      font-size: 42px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: -30px;
+    }
+
+    .risk-label {
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+    }
+
+    /* Progress Bar */
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #0b1215;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-blue);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    /* Horizontal Bar SHAP */
+    .shap-item {
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    .shap-bar-container {
+      display: flex;
+      align-items: center;
+      height: 16px;
+      position: relative;
+      margin-top: 4px;
+    }
+    .shap-center-line {
+      position: absolute;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background: #455a64;
+    }
+    .shap-bar {
+      height: 100%;
+      border-radius: 2px;
+    }
+    .shap-bar.positive {
+      background: #ef4444;
+      position: absolute;
+      left: 50%;
+    }
+    .shap-bar.negative {
+      background: #0088ff;
+      position: absolute;
+      right: 50%;
+    }
+
+    /* List Filter Riwayat */
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 6px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-sub);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    .history-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      border-left: 4px solid #22c55e;
+    }
+
+    /* Layout Pengaturan */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+    .setting-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .setting-icon-box {
+      width: 32px;
+      height: 32px;
+      background: var(--card-inner);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-blue);
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-container">
+  <!-- START OVERLAY -->
+  <div id="start-overlay" onclick="enterApp()">
+    <div class="pulse-title">AERION</div>
+    <div style="font-size:12px; color:#ffffff; letter-spacing:2px; margin-top:-5px;">Pendeteksi TB Anak</div>
+    <div class="tap-text">ketuk layar untuk memulai</div>
+  </div>
+
+  <!-- SIDEBAR NAVIGATION OVERLAY -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="search-box">
+      <svg width="16" height="16" fill="#9ca3af" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" id="sidebar-search" placeholder="Cari..." onkeyup="handleSearch(event)">
+    </div>
+    <ul class="menu-list">
+      <li class="menu-item" onclick="navigateTo('page-home'); toggleSidebar();">Beranda</li>
+      <li class="menu-item" onclick="navigateTo('page-input'); toggleSidebar();">Mulai Pemeriksaan</li>
+      <li class="menu-item" onclick="navigateTo('page-riwayat'); toggleSidebar();">Riwayat</li>
+      <li class="menu-item" onclick="navigateTo('page-akun'); toggleSidebar();">Pusat Akun</li>
+      <li class="menu-item" onclick="navigateTo('page-pengaturan'); toggleSidebar();">Pengaturan</li>
+    </ul>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <button class="icon-btn" onclick="toggleSidebar()">&#9776;</button>
+    <div class="title" id="top-bar-title">BERANDA</div>
+    <div class="battery-icon"><div class="battery-level"></div></div>
+  </div>
+
+  <!-- PAGE WRAPPER -->
+  <div class="page-wrapper">
+
+    <!-- SPLASH SCREEN -->
+    <div id="page-splash" class="page">
+      <div style="text-align: center; margin-top: 40px;">
+        <h2 style="font-family:'Impact'; font-size: 32px; letter-spacing: 2px;">AERION</h2>
+        <p style="font-size: 12px; color: #ffffff; margin-bottom: 20px;">multi-modal AI triage & screening TB anak</p>
+        
+        <div class="device-graphic">
+          <svg class="device-svg" width="140" height="200" viewBox="0 0 140 200">
+            <rect x="25" y="10" width="90" height="180" rx="15" fill="#1c2b30" stroke="#0088ff" stroke-width="2"/>
+            <rect x="35" y="25" width="70" height="90" rx="6" fill="#0d1619"/>
+            <path d="M55,60 C45,45 40,65 50,80 C55,85 60,75 60,65 Z M85,60 C95,45 100,65 90,80 C85,85 80,75 80,65 Z" fill="#0088ff" opacity="0.8"/>
+            <circle cx="70" cy="140" r="12" fill="#24353b" stroke="#0088ff" stroke-width="1.5"/>
+            <rect x="55" y="165" width="30" height="4" rx="2" fill="#455a64"/>
+          </svg>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-sub); margin-top: 20px;">Menghubungkan ke Perangkat Handheld...</p>
+        <div style="margin-top: 30px;">
+          <button class="btn-primary" onclick="navigateTo('page-home')">MASUK KE BERANDA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOME / READY -->
+    <div id="page-home" class="page active">
+      <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 12px; color: #22c55e; font-weight: bold; margin-bottom: 5px;">● PERANGKAT SIAP</div>
+        <h3 style="margin-bottom: 15px;">AERION Handheld</h3>
+
+        <div class="device-graphic">
+          <svg class="device-svg" width="130" height="180" viewBox="0 0 140 200">
+            <rect x="25" y="10" width="90" height="180" rx="15" fill="#162226" stroke="#24353b" stroke-width="2"/>
+            <rect x="35" y="25" width="70" height="90" rx="6" fill="#0b1215"/>
+            <g fill="#0088ff">
+              <path d="M53,55 C43,40 38,60 48,78 C53,83 58,73 58,63 Z" />
+              <path d="M87,55 C97,40 102,60 92,78 C87,83 82,73 82,63 Z" />
+              <rect x="67" y="45" width="6" height="20" rx="2" />
+            </g>
+            <circle cx="70" cy="140" r="10" fill="#0088ff"/>
+          </svg>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px;">
+          Mouthpiece: <span style="color:#22c55e;">Terpasang</span> | SPE Strip: <span style="color:#22c55e;">Ready</span>
+        </div>
+
+        <button class="btn-primary" onclick="navigateTo('page-input')">MULAI PEMERIKSAAN</button>
+      </div>
+    </div>
+
+    <!-- INFORMASI AKUN -->
+    <div id="page-akun" class="page">
+      <h3 style="margin-bottom: 15px;">Informasi Akun</h3>
+      <div class="card">
+        <div style="text-align:center; margin-bottom: 20px;">
+          <div style="width: 60px; height: 60px; background: var(--card-inner); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+            <svg width="30" height="30" fill="#9ca3af" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <p style="font-size:14px; font-weight:bold;">Petugas Kesehatan / User</p>
+          <p style="font-size:12px; color: var(--text-sub);">Puskesmas Jaya</p>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:12px; color: var(--text-sub);">ID Pengguna / Email</label>
+          <input type="text" value="nakes_aerion01" style="width:100%; padding:10px; background:var(--card-inner); border:1px solid var(--border-color); color:#fff; border-radius:6px; margin-top:4px;">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="font-size:12px; color: var(--text-sub);">Kata Sandi</label>
+          <input type="password" value="********" style="width:100%; padding:10px; background:var(--card-inner); border:1px solid var(--border-color); color:#fff; border-radius:6px; margin-top:4px;">
+        </div>
+
+        <button class="btn-primary" onclick="alert('Berhasil Login!'); navigateTo('page-home');">MASUK SEKARANG</button>
+      </div>
+    </div>
+
+    <!-- INPUT RISIKO KLINIS -->
+    <div id="page-input" class="page">
+      <h3 style="margin-bottom: 15px;">Input Risiko Klinis</h3>
+      
+      <div class="form-group">
+        <span style="font-size:14px;">Usia (Tahun)</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="counter-btn" onclick="adjustValue('age', -1)">-</button>
+          <span id="val-age" style="font-weight:bold; width:20px; text-align:center;">0</span>
+          <button class="counter-btn" onclick="adjustValue('age', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span style="font-size:14px;">Berat Badan (Kg)</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="counter-btn" onclick="adjustValue('weight', -1)">-</button>
+          <span id="val-weight" style="font-weight:bold; width:20px; text-align:center;">0</span>
+          <button class="counter-btn" onclick="adjustValue('weight', 1)">+</button>
+        </div>
+      </div>
+
+      <div id="clinical-toggles"></div>
+
+      <div style="margin-top:20px;">
+        <button class="btn-primary" onclick="startAnalysis()">LANJUT ANALISIS</button>
+      </div>
+    </div>
+
+    <!-- PROSES ANALISIS -->
+    <div id="page-analisis" class="page">
+      <div style="text-align:center; margin-top:30px;">
+        <h3>Memproses Analisis...</h3>
+        <p style="font-size:12px; color:var(--text-sub); margin-top:5px;">Mohon tunggu sebentar</p>
+
+        <div class="card" style="margin-top:30px; text-align:left;">
+          <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px;">
+              <span>Volatilomic (Breath)</span>
+              <span id="proc-volat">0%</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-volat"></div></div>
+          </div>
+
+          <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px;">
+              <span>Acoustic (Cough)</span>
+              <span id="proc-acoust">0%</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-acoust"></div></div>
+          </div>
+
+          <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px;">
+              <span>Clinical Risk Score</span>
+              <span id="proc-clin">0%</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-clin"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HASIL PEMERIKSAAN (REVISI: SPEEDOMETER TANPA PANAH) -->
+    <div id="page-hasil" class="page">
+      <div class="card" style="text-align: center;">
+        <div style="font-size:14px; font-weight:bold; color:var(--text-sub); margin-bottom:10px;">TB RISK SCORE</div>
+        
+        <!-- Speedometer SVG Murni Warna Arc Tanpa Jarum Penunjuk -->
+        <div class="gauge-container">
+          <svg width="200" height="110" viewBox="0 0 200 110">
+            <!-- Background Arc Meter (Abu-abu gelap) -->
+            <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#24353b" stroke-width="16" stroke-linecap="round"/>
+            <!-- Active Color Fill Arc (Dinamis Warna & Pengisian) -->
+            <path id="gauge-arc-active" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#22c55e" stroke-width="16" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition: stroke-dashoffset 0.8s ease, stroke 0.5s ease;"/>
+          </svg>
+        </div>
+
+        <div class="risk-score-val" id="res-score-val">0</div>
+        <div style="font-size:14px; color:var(--text-sub); margin-top:-5px; margin-bottom:10px;">/100</div>
+        <div class="risk-label" id="res-risk-label">VERY LOW RISK</div>
+
+        <div style="background:var(--card-inner); padding:12px; border-radius:8px; text-align:left; margin-bottom:20px;">
+          <div style="font-size:12px; font-weight:bold; margin-bottom:4px;">Rekomendasi:</div>
+          <div style="font-size:13px; color:#e2e8f0;" id="res-recommendation">-</div>
+        </div>
+
+        <button class="btn-primary" onclick="navigateTo('page-detail-hasil')">LIHAT DETAIL</button>
+      </div>
+    </div>
+
+    <!-- DETAIL HASIL -->
+    <div id="page-detail-hasil" class="page">
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <button id="btn-tab-skor" class="btn-primary" style="flex:1; padding:10px; font-size:12px;" onclick="switchDetailTab('skor')">Skor & Kontribusi</button>
+        <button id="btn-tab-shap" class="btn-primary" style="flex:1; padding:10px; font-size:12px; background:var(--card-bg);" onclick="switchDetailTab('shap')">Penjelasan AI</button>
+      </div>
+
+      <!-- TAB 1: SKOR -->
+      <div id="tab-content-skor" class="card">
+        <div style="text-align:center; margin-bottom:15px;">
+          <span style="font-size:32px; font-weight:bold;" id="detail-score-num">0</span><span style="color:var(--text-sub);">/100</span>
+          <div id="detail-risk-tag" style="font-weight:bold; font-size:12px;">VERY LOW RISK</div>
+        </div>
+
+        <div style="margin-bottom:10px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between;"><span>Volatilomic (Breath)</span><span id="det-v-val">0%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="det-v-bar"></div></div>
+        </div>
+        <div style="margin-bottom:10px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between;"><span>Acoustic (Cough)</span><span id="det-a-val">0%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="det-a-bar"></div></div>
+        </div>
+        <div style="margin-bottom:15px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between;"><span>Clinical Risk</span><span id="det-c-val">0%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="det-c-bar"></div></div>
+        </div>
+
+        <div style="font-size:11px; color:var(--text-sub); background:var(--card-inner); padding:10px; border-radius:6px; display:flex; gap:8px;">
+          <span style="color:var(--accent-blue); font-weight:bold;">ⓘ</span>
+          <span>Hasil ini bukan diagnosis. Tetap lakukan pemeriksaan lanjutan sesuai anjuran klinis.</span>
+        </div>
+      </div>
+
+      <!-- TAB 2: SHAP -->
+      <div id="tab-content-shap" class="card" style="display:none;">
+        <div style="font-size:12px; font-weight:bold; margin-bottom:10px;">Faktor utama yang memengaruhi analisis risiko:</div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-sub); margin-bottom:10px;">
+          <span>← Menurunkan</span>
+          <span>Meningkatkan →</span>
+        </div>
+
+        <div id="shap-list"></div>
+      </div>
+    </div>
+
+    <!-- RIWAYAT -->
+    <div id="page-riwayat" class="page">
+      <h3 style="margin-bottom: 12px;">Riwayat Pemeriksaan</h3>
+      
+      <div class="filter-tabs">
+        <button class="tab-btn active" onclick="filterHistory('semua', this)">Semua</button>
+        <button class="tab-btn" onclick="filterHistory('tinggi', this)">Tinggi</button>
+        <button class="tab-btn" onclick="filterHistory('sedang', this)">Sedang</button>
+        <button class="tab-btn" onclick="filterHistory('rendah', this)">Rendah</button>
+      </div>
+
+      <div id="history-container"></div>
+    </div>
+
+    <!-- LAPORAN HASIL -->
+    <div id="page-laporan" class="page">
+      <h3 style="margin-bottom: 15px;">Laporan Hasil</h3>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <div>
+            <div style="font-size:12px; color:var(--text-sub);">TB Risk Score</div>
+            <div style="font-size:28px; font-weight:bold;" id="lap-score">0/100</div>
+            <div style="font-size:12px; font-weight:bold;" id="lap-label">Very Low Risk</div>
+          </div>
+          <div style="width:50px; height:50px;">
+            <svg width="50" height="50" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#24353b" stroke-width="3"/>
+              <path id="lap-circle-active" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="#22c55e" stroke-width="3"/>
+            </svg>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-color); padding-top:10px; font-size:13px;">
+          <div style="font-weight:bold; margin-bottom:10px;">Ringkasan Pemeriksaan</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">Tanggal</span><span id="lap-date">23 Mei 2025</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">Waktu</span><span>09:15 WIB</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">ID Pemeriksaan</span><span>AER-23457854</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">Usia</span><span id="lap-age">0 tahun</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">Berat Badan</span><span id="lap-weight">0 kg</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="color:var(--text-sub);">Fasyankes</span><span>Puskesmas Jaya</span></div>
+        </div>
+
+        <button class="btn-primary" style="margin-top:20px;" onclick="alert('Mengunduh Laporan PDF...')">UNDUH LAPORAN</button>
+      </div>
+    </div>
+
+    <!-- PENGATURAN -->
+    <div id="page-pengaturan" class="page">
+      <h3 style="margin-bottom: 15px;">Pengaturan</h3>
+
+      <div id="setting-content-main">
+        <div class="card" style="padding:4px 0;">
+          <div class="setting-row" onclick="showSettingDetail('perangkat')">
+            <div class="setting-info">
+              <div class="setting-icon-box">💻</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Perangkat</div>
+                <div style="font-size:11px; color:var(--text-sub);">Status & Manajemen Perangkat</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('info-perangkat')">
+            <div class="setting-info">
+              <div class="setting-icon-box">ℹ️</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Informasi Perangkat</div>
+                <div style="font-size:11px; color:var(--text-sub);">Integrasi Data & Versi Firmware</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('koneksi')">
+            <div class="setting-info">
+              <div class="setting-icon-box">📡</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Koneksi dan Kalibrasi</div>
+                <div style="font-size:11px; color:var(--text-sub);">Mouthpiece, SPE Strip & Sensor</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="navigateTo('page-akun')">
+            <div class="setting-info">
+              <div class="setting-icon-box">👤</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Pengguna dan Profil</div>
+                <div style="font-size:11px; color:var(--text-sub);">Informasi Akun Petugas</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('privasi')">
+            <div class="setting-info">
+              <div class="setting-icon-box">🔒</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Keamanan dan Privasi</div>
+                <div style="font-size:11px; color:var(--text-sub);">Enkripsi & Proteksi Data</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('tentang')">
+            <div class="setting-info">
+              <div class="setting-icon-box">🔍</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Tentang AERION</div>
+                <div style="font-size:11px; color:var(--text-sub);">Deskripsi Platform Multimodal</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('bantuan')">
+            <div class="setting-info">
+              <div class="setting-icon-box">❓</div>
+              <div>
+                <div style="font-size:14px; font-weight:500;">Bantuan</div>
+                <div style="font-size:11px; color:var(--text-sub);">Panduan & Dukungan Teknis</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+
+          <div class="setting-row" onclick="showSettingDetail('keluar')">
+            <div class="setting-info">
+              <div class="setting-icon-box" style="color:#ef4444;">🚪</div>
+              <div>
+                <div style="font-size:14px; font-weight:500; color:#ef4444;">Keluar</div>
+                <div style="font-size:11px; color:var(--text-sub);">Simpan Kredensial Login</div>
+              </div>
+            </div>
+            <span style="color:var(--text-sub);">&#8250;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Sub-Pengaturan Box -->
+      <div id="setting-content-detail" class="card" style="display:none;">
+        <button style="background:none; border:none; color:var(--accent-blue); margin-bottom:10px; cursor:pointer;" onclick="hideSettingDetail()">← Kembali</button>
+        <div id="setting-detail-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="navigateTo('page-home')">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Beranda
+    </div>
+    <div class="nav-item" id="nav-riwayat" onclick="navigateTo('page-riwayat')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      Riwayat
+    </div>
+    <div class="nav-item" id="nav-akun" onclick="navigateTo('page-akun')">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      Akun
+    </div>
+    <div class="nav-item" id="nav-pengaturan" onclick="navigateTo('page-pengaturan')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6 3.6z"/></svg>
+      Pengaturan
+    </div>
+  </div>
+</div>
+
+<script>
+  let inputData = {
+    age: 0,
+    weight: 0,
+    contactTB: false,
+    bcg: false,
+    symptoms: false,
+    fever: false,
+    malnutrition: false,
+    tuberculin: false,
+    limfe: false,
+    joint: false,
+    thorax: false
+  };
+
+  const clinicalQuestions = [
+    { key: 'contactTB', label: 'Kontak TB' },
+    { key: 'bcg', label: 'BCG Vaccination' },
+    { key: 'symptoms', label: 'Gejala >2 minggu' },
+    { key: 'fever', label: 'Demam' },
+    { key: 'malnutrition', label: 'Riwayat Gizi Buruk' },
+    { key: 'tuberculin', label: 'Uji Tuberkulin (+)' },
+    { key: 'limfe', label: 'Pembesaran Kelenjar Limfe' },
+    { key: 'joint', label: 'Pembengkakan Sendi/Tulang' },
+    { key: 'thorax', label: 'Foto Rontgen Toraks (+)' }
+  ];
+
+  let computedScore = 0;
+  let historyList = [
+    { date: '23 Mei 2025', time: '09:15', score: 76, label: 'VERY HIGH RISK', category: 'tinggi' },
+    { date: '10 Mei 2025', time: '09:15', score: 60, label: 'HIGH RISK', category: 'tinggi' },
+    { date: '10 Mei 2025', time: '09:15', score: 36, label: 'LOW - MEDIUM RISK', category: 'sedang' },
+    { date: '10 Mei 2025', time: '09:15', score: 17, label: 'VERY LOW RISK', category: 'rendah' }
+  ];
+
+  window.onload = function() {
+    renderClinicalToggles();
+    renderHistory('semua');
+  };
+
+  function enterApp() {
+    const overlay = document.getElementById('start-overlay');
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.6s ease';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      navigateTo('page-splash');
+    }, 600);
+  }
+
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const sbo = document.getElementById('sidebar-overlay');
+    sb.classList.toggle('open');
+    sbo.classList.toggle('open');
+  }
+
+  function navigateTo(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(pageId);
+    if(target) target.classList.add('active');
+
+    const titleMap = {
+      'page-splash': 'AERION INTRO',
+      'page-home': 'BERANDA',
+      'page-akun': 'INFORMASI AKUN',
+      'page-input': 'INPUT RISIKO KLINIS',
+      'page-analisis': 'PROSES ANALISIS',
+      'page-hasil': 'HASIL PEMERIKSAAN',
+      'page-detail-hasil': 'DETAIL HASIL',
+      'page-riwayat': 'RIWAYAT PEMERIKSAAN',
+      'page-laporan': 'LAPORAN HASIL',
+      'page-pengaturan': 'PENGATURAN'
+    };
+    document.getElementById('top-bar-title').innerText = titleMap[pageId] || 'AERION';
+
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(pageId === 'page-home') document.getElementById('nav-home').classList.add('active');
+    if(pageId === 'page-riwayat') document.getElementById('nav-riwayat').classList.add('active');
+    if(pageId === 'page-akun') document.getElementById('nav-akun').classList.add('active');
+    if(pageId === 'page-pengaturan') document.getElementById('nav-pengaturan').classList.add('active');
+  }
+
+  function handleSearch(e) {
+    if(e.key === 'Enter') {
+      const q = e.target.value.toLowerCase();
+      if(q.includes('riwayat')) navigateTo('page-riwayat');
+      else if(q.includes('akun') || q.includes('login')) navigateTo('page-akun');
+      else if(q.includes('pengaturan')) navigateTo('page-pengaturan');
+      else if(q.includes('periksa') || q.includes('input')) navigateTo('page-input');
+      else navigateTo('page-home');
+      toggleSidebar();
+    }
+  }
+
+  function adjustValue(type, delta) {
+    inputData[type] = Math.max(0, inputData[type] + delta);
+    document.getElementById(`val-${type}`).innerText = inputData[type];
+  }
+
+  function renderClinicalToggles() {
+    const container = document.getElementById('clinical-toggles');
+    container.innerHTML = clinicalQuestions.map(q => `
+      <div class="form-group">
+        <span style="font-size:13px;">${q.label}</span>
+        <div class="toggle-switch">
+          <div class="toggle-opt ${!inputData[q.key] ? 'active' : ''}" onclick="setToggle('${q.key}', false, this)">Tidak</div>
+          <div class="toggle-opt ${inputData[q.key] ? 'active' : ''}" onclick="setToggle('${q.key}', true, this)">Ya</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function setToggle(key, val, el) {
+    inputData[key] = val;
+    const parent = el.parentElement;
+    parent.querySelectorAll('.toggle-opt').forEach(opt => opt.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function startAnalysis() {
+    navigateTo('page-analisis');
+
+    let yesCount = 0;
+    clinicalQuestions.forEach(q => { if(inputData[q.key]) yesCount++; });
+
+    let clinicalPercent = Math.min(98, Math.max(5, (yesCount * 10) + (inputData.weight > 0 && inputData.weight < 12 ? 15 : 0)));
+    let volatPercent = Math.min(95, Math.max(10, clinicalPercent + (Math.random() * 8 - 4)));
+    let acoustPercent = Math.min(95, Math.max(10, clinicalPercent + (Math.random() * 8 - 4)));
+
+    let pVolat = 0, pAcoust = 0, pClin = 0;
+    let timer = setInterval(() => {
+      if(pVolat < volatPercent) pVolat += 2;
+      if(pAcoust < acoustPercent) pAcoust += 2;
+      if(pClin < clinicalPercent) pClin += 2;
+
+      document.getElementById('proc-volat').innerText = `${Math.round(pVolat)}%`;
+      document.getElementById('bar-volat').style.width = `${pVolat}%`;
+
+      document.getElementById('proc-acoust').innerText = `${Math.round(pAcoust)}%`;
+      document.getElementById('bar-acoust').style.width = `${pAcoust}%`;
+
+      document.getElementById('proc-clin').innerText = `${Math.round(pClin)}%`;
+      document.getElementById('bar-clin').style.width = `${pClin}%`;
+
+      if(pVolat >= volatPercent && pAcoust >= acoustPercent && pClin >= clinicalPercent) {
+        clearInterval(timer);
+        finalizeResults(volatPercent, acoustPercent, clinicalPercent);
+      }
+    }, 35);
+  }
+
+  // Speedometer Dinamis Mengubah Warna & Isian Busur Tanpa Jarum Penunjuk
+  function finalizeResults(v, a, c) {
+    computedScore = Math.round((v * 0.45) + (a * 0.32) + (c * 0.23));
+
+    let riskLabel = "";
+    let riskColor = "";
+    let reco = "";
+    let cat = "";
+
+    if (computedScore <= 24) {
+      riskLabel = "VERY LOW RISK";
+      riskColor = "var(--risk-very-low)"; // Hijau
+      reco = "Edukasi dan pemantauan.";
+      cat = "rendah";
+    } else if (computedScore <= 49) {
+      riskLabel = "LOW - MEDIUM RISK";
+      riskColor = "var(--risk-low-med)"; // Kuning
+      reco = "Evaluasi ulang di fasilitas kesehatan.";
+      cat = "sedang";
+    } else if (computedScore <= 74) {
+      riskLabel = "HIGH RISK";
+      riskColor = "var(--risk-high)"; // Orange
+      reco = "Prioritas pemeriksaan GeneXpert/TCM.";
+      cat = "tinggi";
+    } else {
+      riskLabel = "VERY HIGH RISK";
+      riskColor = "var(--risk-very-high)"; // Merah
+      reco = "Rujukan segera untuk pemeriksaan GeneXpert/TCM.";
+      cat = "tinggi";
+    }
+
+    // Update Speedometer Warna & Nilai Skor
+    document.getElementById('res-score-val').innerText = computedScore;
+    document.getElementById('res-risk-label').innerText = riskLabel;
+    document.getElementById('res-risk-label').style.color = riskColor;
+    document.getElementById('res-recommendation').innerText = reco;
+
+    const arcFill = document.getElementById('gauge-arc-active');
+    arcFill.style.stroke = riskColor;
+    const dashoffset = 251.2 - (251.2 * (computedScore / 100));
+    arcFill.style.strokeDashoffset = dashoffset;
+
+    // Update Detail Hasil Tab 1
+    document.getElementById('detail-score-num').innerText = computedScore;
+    document.getElementById('detail-risk-tag').innerText = riskLabel;
+    document.getElementById('detail-risk-tag').style.color = riskColor;
+    document.getElementById('det-v-val').innerText = `${Math.round(v)}%`;
+    document.getElementById('det-v-bar').style.width = `${v}%`;
+    document.getElementById('det-a-val').innerText = `${Math.round(a)}%`;
+    document.getElementById('det-a-bar').style.width = `${a}%`;
+    document.getElementById('det-c-val').innerText = `${Math.round(c)}%`;
+    document.getElementById('det-c-bar').style.width = `${c}%`;
+
+    // Add History
+    historyList.unshift({
+      date: '23 Mei 2025',
+      time: '09:15',
+      score: computedScore,
+      label: riskLabel,
+      category: cat
+    });
+    renderHistory('semua');
+
+    renderSHAP();
+    setTimeout(() => navigateTo('page-hasil'), 400);
+  }
+
+  function renderSHAP() {
+    const list = [
+      { name: 'Volatilomic (Methyl Nicotinate)', val: computedScore > 50 ? 18 : 4 },
+      { name: 'Acoustic Feature (Persistent Cough)', val: computedScore > 50 ? 14 : 3 },
+      { name: 'Gejala >2 minggu', val: inputData.symptoms ? 12 : -5 },
+      { name: 'Riwayat Gizi Buruk', val: inputData.malnutrition ? 11 : -6 },
+      { name: 'Uji Tuberkulin (+)', val: inputData.tuberculin ? 15 : -8 },
+      { name: 'Pembesaran Kelenjar Limfe', val: inputData.limfe ? 9 : -4 },
+      { name: 'Pembengkakan Sendi/Tulang', val: inputData.joint ? 8 : -4 },
+      { name: 'Foto Rontgen Toraks (+)', val: inputData.thorax ? 16 : -7 },
+      { name: 'Kontak TB', val: inputData.contactTB ? 10 : -5 },
+      { name: 'Demam', val: inputData.fever ? 7 : -3 },
+      { name: 'BCG Vaccination', val: inputData.bcg ? -8 : 6 }
+    ];
+
+    const container = document.getElementById('shap-list');
+    container.innerHTML = list.map(item => {
+      const isPos = item.val >= 0;
+      const width = Math.min(90, Math.abs(item.val) * 5);
+      return `
+        <div class="shap-item">
+          <div style="display:flex; justify-content:space-between;">
+            <span>${item.name}</span>
+            <span style="color:${isPos?'#ef4444':'#0088ff'}; font-weight:bold;">${isPos?'+'+item.val:item.val}</span>
+          </div>
+          <div class="shap-bar-container">
+            <div class="shap-center-line"></div>
+            <div class="shap-bar ${isPos?'positive':'negative'}" style="width:${width}px;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function switchDetailTab(tab) {
+    if(tab === 'skor') {
+      document.getElementById('tab-content-skor').style.display = 'block';
+      document.getElementById('tab-content-shap').style.display = 'none';
+      document.getElementById('btn-tab-skor').style.background = 'var(--accent-blue)';
+      document.getElementById('btn-tab-shap').style.background = 'var(--card-bg)';
+    } else {
+      document.getElementById('tab-content-skor').style.display = 'none';
+      document.getElementById('tab-content-shap').style.display = 'block';
+      document.getElementById('btn-tab-skor').style.background = 'var(--card-bg)';
+      document.getElementById('btn-tab-shap').style.background = 'var(--accent-blue)';
+    }
+  }
+
+  function renderHistory(filter) {
+    const container = document.getElementById('history-container');
+    const filtered = historyList.filter(h => filter === 'semua' || h.category === filter);
+
+    container.innerHTML = filtered.map(h => {
+      let color = h.score >= 75 ? 'var(--risk-very-high)' : h.score >= 50 ? 'var(--risk-high)' : h.score >= 25 ? 'var(--risk-low-med)' : 'var(--risk-very-low)';
+      return `
+        <div class="history-card" style="border-left-color:${color};" onclick="openLaporan(${h.score}, '${h.label}')">
+          <div>
+            <div style="font-size:13px; font-weight:bold;">${h.date}</div>
+            <div style="font-size:11px; color:var(--text-sub);">${h.time}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:bold; color:${color};">${h.score}/100</div>
+            <div style="font-size:11px; color:${color};">${h.label}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterHistory(cat, el) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderHistory(cat);
+  }
+
+  function openLaporan(score, label) {
+    document.getElementById('lap-score').innerText = `${score}/100`;
+    document.getElementById('lap-label').innerText = label;
+    document.getElementById('lap-age').innerText = `${inputData.age} tahun`;
+    document.getElementById('lap-weight').innerText = `${inputData.weight} kg`;
+
+    let color = score >= 75 ? 'var(--risk-very-high)' : score >= 50 ? 'var(--risk-high)' : score >= 25 ? 'var(--risk-low-med)' : 'var(--risk-very-low)';
+    document.getElementById('lap-label').style.color = color;
+    document.getElementById('lap-circle-active').style.stroke = color;
+
+    navigateTo('page-laporan');
+  }
+
+  function showSettingDetail(type) {
+    const detailBox = document.getElementById('setting-content-detail');
+    const mainBox = document.getElementById('setting-content-main');
+    const body = document.getElementById('setting-detail-body');
+
+    mainBox.style.display = 'none';
+    detailBox.style.display = 'block';
+
+    if(type === 'perangkat' || type === 'tentang') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Tentang AERION</h4>
+        <p style="font-size:12px; color:var(--text-sub); line-height:1.6;">
+          AERION merupakan platform skrining & triase dini tuberkulosis (TB) anak berbasis Edge-AI dan breath volatilomics.<br><br>
+          Memadukan sensor analisis udara napas (volatilomic), sinyal suara batuk (acoustic), dan kalkulasi risiko klinis terpadu secara real-time.
+        </p>
+      `;
+    } else if(type === 'info-perangkat') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Informasi Perangkat</h4>
+        <div style="font-size:12px; color:var(--text-sub); line-height:1.8;">
+          <div>Seri Perangkat: <strong>AERION-V2-PRO</strong></div>
+          <div>Firmware: <strong>v2.4.12-edge</strong></div>
+          <div>Modul AI: <strong>Volatilomics Engine v1.0.4</strong></div>
+          <div>Status Sinkronisasi: <strong>Tersambung ke SITB</strong></div>
+        </div>
+      `;
+    } else if(type === 'koneksi') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Koneksi & Kalibrasi</h4>
+        <div style="font-size:12px; line-height:1.8;">
+          Mouthpiece: <span style="color:#22c55e; font-weight:bold;">Terpasang</span><br>
+          SPE Strip: <span style="color:#22c55e; font-weight:bold;">Ready / Terkalibrasi</span><br>
+          Mikrofon Akustik: <span style="color:#22c55e; font-weight:bold;">Aktif</span><br>
+          Koneksi Bluetooth: <span style="color:#22c55e; font-weight:bold;">Terhubung</span>
+        </div>
+      `;
+    } else if(type === 'privasi') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Keamanan & Privasi</h4>
+        <p style="font-size:12px; color:var(--text-sub); line-height:1.6;">
+          Seluruh rekaman klinis dan data sampel napas diproses secara lokal pada perangkat Edge-AI dan dienkripsi AES-256 sebelum ditransmisikan.
+        </p>
+      `;
+    } else if(type === 'bantuan') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Pusat Bantuan AERION</h4>
+        <p style="font-size:12px; color:var(--text-sub); line-height:1.6;">
+          Dukungan teknis, panduan operasional alat, petunjuk penggantian disposable strip, dan bantuan penanganan kendala sistem fasyankes.
+        </p>
+      `;
+    } else if(type === 'keluar') {
+      body.innerHTML = `
+        <h4 style="margin-bottom:8px;">Simpan info login Anda?</h4>
+        <p style="font-size:12px; color:var(--text-sub);">
+          Kami akan menyimpan kredensial login ke cadangan cloud perangkat ini.
+        </p>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+          <button class="btn-primary" style="flex:1;" onclick="navigateTo('page-akun'); hideSettingDetail();">Simpan</button>
+          <button class="btn-primary" style="flex:1; background:var(--card-inner);" onclick="navigateTo('page-akun'); hideSettingDetail();">Lain Kali</button>
+        </div>
+      `;
+    }
+  }
+
+  function hideSettingDetail() {
+    document.getElementById('setting-content-detail').style.display = 'none';
+    document.getElementById('setting-content-main').style.display = 'block';
+  }
+</script>
+</body>
+</html>
+
